@@ -54,13 +54,34 @@ namespace QuickNetworkSwitch
 
         private void Working_Shown(object sender, EventArgs e)
         {
-            if(!File.Exists(Helper.GetFullPath("index.target"))){
-                MessageBox.Show("Coundn't find index.target file. Please contact to the software developer.", "Error", MessageBoxButton.OK, MessageBoxIcons.Error);
+            //Check existing the file "index.target"
+            if (!File.Exists(Helper.GetFullPath("index.target"))){
+                MessageBox.Show("Coundn't find index.target file. Please contact to the software developer.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                this.CanCloseForm = true;
                 this.Close();
                 return;
             }
-            
-            //Note: Write Main logic here
+            //Check existing the file "DevCon.exe"
+            if (!File.Exists(Helper.GetFullPath("DevCon.exe")))
+            {
+                MessageBox.Show("Couldn't find executable file of Device Controller (DevCon.exe). Please contact to the software developer.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                this.CanCloseForm = true;
+                this.Close();
+                return;
+            }
+            //Main processing rogic
+            try
+            {
+                LinkedList<string> list = new LinkedList<string>();
+                using (StreamReader reader = new StreamReader(Helper.GetFullPath("index.target")))
+                {
+                    while (!reader.EndOfStream)
+                    {
+                        list.AddLast(reader.ReadLine());
+                    }
+                }
+                string[] TargetDeviceList = list.ToArray();
+            }
         }
     }
 }
