@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -13,6 +14,8 @@ namespace QuickNetworkSwitch
 {
     public partial class Working : Form
     {
+        private const string DEVCONEXE_STR = "DevCon.exe";
+        private const string TARGETFILE_STR = "index.target";
         private bool CanCloseForm = false;
         private Form1 ParentWin = null;
         private NetworkState state = NetworkState.None;
@@ -55,25 +58,31 @@ namespace QuickNetworkSwitch
         private void Working_Shown(object sender, EventArgs e)
         {
             //Check existing the file "index.target"
-            if (!File.Exists(Helper.GetFullPath("index.target"))){
+            if (!File.Exists(Helper.GetFullPath(TARGETFILE_STR))){
                 MessageBox.Show("Coundn't find index.target file. Please contact to the software developer.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 this.CanCloseForm = true;
                 this.Close();
                 return;
             }
             //Check existing the file "DevCon.exe"
-            if (!File.Exists(Helper.GetFullPath("DevCon.exe")))
+            if (!File.Exists(Helper.GetFullPath(DEVCONEXE_STR)))
             {
                 MessageBox.Show("Couldn't find executable file of Device Controller (DevCon.exe). Please contact to the software developer.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 this.CanCloseForm = true;
                 this.Close();
                 return;
             }
-            //Main processing rogic
+            //User Check Dialog
+            if(MessageBox.Show("デバイスの設定を適用します。よろしいですか？","確認",MessageBoxButtons.OKCancel,MessageBoxIcon.Warning) == DialogResult.Cancel)
+            {
+                this.CanCloseForm = true;
+                this.Close();
+            }
+            //Main processing logic
             try
             {
                 LinkedList<string> list = new LinkedList<string>();
-                using (StreamReader reader = new StreamReader(Helper.GetFullPath("index.target")))
+                using (StreamReader reader = new StreamReader(Helper.GetFullPath(TARGETFILE_STR)))
                 {
                     while (!reader.EndOfStream)
                     {
@@ -81,6 +90,16 @@ namespace QuickNetworkSwitch
                     }
                 }
                 string[] TargetDeviceList = list.ToArray();
+                foreach(string v in TargetDeviceList)
+                {
+                    ProcessStartInfo info = new ProcessStartInfo();
+                    info.FileName = Helper.GetFullPath(DEVCONEXE_STR);
+                    info.Arguments = $"{(this.state == NetworkState.Enable ? "enable" : "disable")} \"{}\"}";
+                }
+            }
+            catch
+            {
+
             }
         }
     }
