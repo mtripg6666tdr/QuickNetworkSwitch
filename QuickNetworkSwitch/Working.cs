@@ -29,23 +29,28 @@ namespace QuickNetworkSwitch
             Enable,
             Disable
         }
-        
-        public bool? HasFinished 
+
+        public bool? HasFinished
         {
-            get{
+            get {
                 return this._hasFinished;
             }
             set {
                 this._hasFinished = value;
             }
         }
-        
+
         public Working(Form1 p, NetworkState state)
         {
             this.InitializeComponent();
 
             this.ParentWin = p;
-            this.state = state == NetworkState.None ? state : throw new ArgumentException();
+            this.state = state != NetworkState.None ? state : throw new ArgumentException();
+
+            if (!Directory.Exists(this.LogFilePath))
+            {
+                Directory.CreateDirectory(this.LogFilePath);
+            }
         }
 
         private void Working_FormClosing(object sender, FormClosingEventArgs e)
@@ -59,53 +64,71 @@ namespace QuickNetworkSwitch
 
         private async void Working_Shown(object sender, EventArgs e)
         {
-            //Check existing the file "index.target"
-            if (!File.Exists(Helper.GetFullPath(TARGETFILE_STR))) {
-                MessageBox.Show("Coundn't find index.target file. Please contact to the software developer.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                this.CanCloseForm = true;
-                this.Close();
-                return;
-            }
-            //Check existing the file "DevCon.exe"
-            if (!File.Exists(Helper.GetFullPath(DEVCONEXE_STR)))
-            {
-                MessageBox.Show("Couldn't find executable file of Device Controller (DevCon.exe). Please contact to the software developer.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                this.CanCloseForm = true;
-                this.Close();
-                return;
-            }
-            //User Check Dialog
-            if (MessageBox.Show("デバイスの設定を適用します。よろしいですか？", "確認", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) == DialogResult.Cancel)
-            {
-                this.CanCloseForm = true;
-                this.Close();
-            }
-            //Main processing logic
             using (StreamWriter writer = new StreamWriter(this.LogFilePath + "ManageLog.log", true, Encoding.UTF8))
             {
+                writer.WriteLine("\r\n");
+                //Check existing the file "index.target"
+                if (!File.Exists(Helper.GetFullPath(TARGETFILE_STR))) {
+                    MessageBox.Show("Coundn't find index.target file. Please contact to the software developer.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    writer.WriteLine("[" + DateTime.Now.ToString() + "]Error!Couldn't find TARGETFILE");
+                    this.CanCloseForm = true;
+                    this.Close();
+                    return;
+                }
+                //Check existing the file "DevCon.exe"
+                if (!File.Exists(Helper.GetFullPath(DEVCONEXE_STR)))
+                {
+                    MessageBox.Show("Couldn't find executable file of Device Controller (DevCon.exe). Please contact to the software developer.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    writer.WriteLine("[" + DateTime.Now.ToString() + "]Error!Couldn't find DEVCONEXE");
+                    this.CanCloseForm = true;
+                    this.Close();
+                    return;
+                }
+                //User Check Dialog
+                if (MessageBox.Show("デバイスの設定を適用します。よろしいですか？", "確認", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning) == DialogResult.Cancel)
+                {
+                    writer.WriteLine("[" + DateTime.Now.ToString() + "] User canceled.");
+                    this.CanCloseForm = true;
+                    this.Close();
+                    return;
+                }
+                //Main processing logic
                 try
                 {
+                    writer.WriteLine("[" + DateTime.Now.ToString() + "]操作を開始します。");
                     LinkedList<string> list = new LinkedList<string>();
                     using (StreamReader reader = new StreamReader(Helper.GetFullPath(TARGETFILE_STR)))
                     {
+                        string line = null;
                         while (!reader.EndOfStream)
                         {
-                            list.AddLast(reader.ReadLine());
+                            line = reader.ReadLine();
+                            if (!line.StartsWith("/!!!/") && !string.IsNullOrEmpty(line))
+                            {
+                                list.AddLast(line);
+                            }
                         }
                     }
                     string[] TargetDeviceList = list.ToArray();
                     foreach (string v in TargetDeviceList)
                     {
                         ProcessStartInfo info = new ProcessStartInfo();
+#if EDEBUG
+                        info.FileName = "cmd.exe";
+                        info.Arguments = $"echo {(this.state == NetworkState.Enable ? "enable" : "disable")} \"{v}\"";
+
+#else
                         info.FileName = Helper.GetFullPath(DEVCONEXE_STR);
                         info.Arguments = $"{(this.state == NetworkState.Enable ? "enable" : "disable")} \"{v}\"";
+#endif
                         writer.WriteLine("[" + DateTime.Now.ToString() + $"]デバイス:{v}の有効無効の設定を変更します。");
                         writer.WriteLine($"デバイスID:{v}を{(this.state == NetworkState.Enable ? "有効" : "無効")}にする操作を実行します");
                         Task t = new Task(() =>
                         {
                             Process p = Process.Start(info);
-                            p.WaitForExit(1000);
+                            p.WaitForExit(10000);
                         });
+                        t.Start();
                         await t.ConfigureAwait(true);
                         writer.WriteLine($"デバイスID:{v}を{(this.state == NetworkState.Enable ? "有効" : "無効")}にする操作:プロセスを実行しました");
                         if (t.IsFaulted)
@@ -113,6 +136,7 @@ namespace QuickNetworkSwitch
                             writer.WriteLine($"デバイスID:{v}を{(this.state == NetworkState.Enable ? "有効" : "無効")}にする操作を実行中に例外が発生しました:" + t.Exception.InnerException.Message);
                         }
                     }
+                    writer.WriteLine("[" + DateTime.Now.ToString() + "]操作を完了しました。");
                 }
                 catch (ArgumentException ex)
                 {
@@ -168,7 +192,7 @@ namespace QuickNetworkSwitch
                     this.CanCloseForm = true;
                     writer.WriteLine(ex.Message);
                     writer.WriteLine(ex.StackTrace);
-                    this.Close()
+                    this.Close();
                 }
                 catch (UnauthorizedAccessException ex)
                 {

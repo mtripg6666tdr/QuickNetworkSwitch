@@ -16,6 +16,8 @@ namespace QuickNetworkSwitch
         public Form1()
         {
             this.InitializeComponent();
+
+            this.timer1.Enabled = true;
         }
 
         /// <summary>
@@ -24,7 +26,7 @@ namespace QuickNetworkSwitch
         /// <param name="LogText">追加するログの文字列</param>
         public void AppendLog(string LogText)
         {
-            this.LogWindow.AppendText((DateTime.Now).ToString("hh:mm:ss") + ":" + LogText.Replace("\r\n", "\r").Replace('\r', '\n').Replace("\n", "") + "\r\n");
+            this.LogWindow.AppendText("[" + DateTime.Now.ToString() + "]" + LogText.Replace("\r\n", "\r").Replace('\r', '\n').Replace("\n", "") + "\r\n");
         }
         public void AppendLog(Exception ErrorObj)
         {
@@ -40,6 +42,9 @@ namespace QuickNetworkSwitch
         {
             this.CurrentNetworkState.Text = NetworkInterface.GetIsNetworkAvailable() ? "有効" : "無効";
             this.AppendLog("ネットワークの状態を更新しました");
+
+            this.DisableNetwork.Enabled = NetworkInterface.GetIsNetworkAvailable();
+            this.EnableNetwork.Enabled = !NetworkInterface.GetIsNetworkAvailable();
         }
 
         private void StateRefrashButton_Click(object sender, EventArgs e)
@@ -54,10 +59,12 @@ namespace QuickNetworkSwitch
 
         private void button2_Click(object sender, EventArgs e)
         {
+            this.TopMost = false;
             using(AboutBox1 aboutBox = new AboutBox1())
             {
                 aboutBox.ShowDialog();
             }
+            this.TopMost = true;
         }
 
         private void EnableNetwork_Click(object sender, EventArgs e)
@@ -72,12 +79,23 @@ namespace QuickNetworkSwitch
 
         private void Work(Working.NetworkState state)
         {
+            this.TopMost = this.timer1.Enabled = false;
             using(Working workingWin = new Working(this, state))
             {
                 this.AppendLog("操作を実行します。");
                 workingWin.ShowDialog();
                 this.AppendLog("操作を実行しました。");
+                if (state == Working.NetworkState.Enable)
+                {
+                    MessageBox.Show("有効にする操作後はWiFiが正常に接続されるまで多少時間がかかるため、\r\nネットワーク機能が使用可能な状態になるまで少々お待ちください。");
+                }
             }
+            this.TopMost = this.timer1.Enabled = true;
+        }
+
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+            this.Form1_Load(null, null);
         }
     }
 }
