@@ -17,6 +17,16 @@ namespace QuickNetworkSwitch
         {
             this.InitializeComponent();
 
+            if (Properties.Settings.Default.FirstLaunch)
+            {
+                using (FirstLaunch fl = new FirstLaunch())
+                {
+                    fl.ShowDialog();
+                    Properties.Settings.Default.FirstLaunch = !fl.NeverShowAgain;
+                    Properties.Settings.Default.Save();
+                }
+            }
+            
             this.timer1.Enabled = true;
         }
 
