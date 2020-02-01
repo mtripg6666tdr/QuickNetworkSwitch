@@ -74,7 +74,9 @@ namespace QuickNetworkSwitch
         {
             using(Working workingWin = new Working(this, state))
             {
+                this.AppendLog("操作を実行します。");
                 workingWin.ShowDialog();
+                this.AppendLog("操作を実行しました。");
             }
         }
     }
