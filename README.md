@@ -10,3 +10,11 @@ mtripg6666tdrが作成した、簡単にネットワークデバイスの有効/
 
 ## 準備 / Preparing to using
 本アプリで有効にしたり、無効にしたりするハードウェアのIDを使用しますので、対象のデバイスのハードウェアIDをインストール先のindex.targetの内容と置き換えてください。
+
+## サポート・お問い合わせ / Support & Contact
+本アプリにはそれほどおおくの説明がないため、初心者には少し使いにくいです。お気軽にツイッターまでお問い合わせください。
+いつかはヘルプファイルとかも作ろうかと思っていますが、今のところはなんの予定もありません。
+
+## By mtripg6666tdr
+ホームページ: https://scrpg.tyanoyu.net/?ref=github_quicknetworkswitch
+Twitter: https://twitter.com/mtripg6666tdr
