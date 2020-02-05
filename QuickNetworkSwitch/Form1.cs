@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
+using System.Net;
 using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading.Tasks;
@@ -48,13 +49,40 @@ namespace QuickNetworkSwitch
             this.AppendLog(LogObj.ToString());
         }
 
+        /// <summary>
+        /// Try to connect a host in internet and return the result of judging whether
+        /// Machine is connected to internet or not.
+        /// </summary>
+        /// <returns>Whether connected to internet.</returns>
+        public static bool GetIsConnectedToInternet()
+        {
+            const string host = "ht" + "tp://www.yahoo.co.jp";
+            HttpWebRequest request = null;
+            HttpWebResponse response = null;
+            try
+            {
+                request = (HttpWebRequest)WebRequest.Create(host);
+                request.Method = "HEAD";
+                response = (HttpWebResponse)request.GetResponse();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+            finally
+            {
+                response?.Dispose();
+            }
+        }
+
         private void Form1_Load(object sender, EventArgs e)
         {
-            this.CurrentNetworkState.Text = NetworkInterface.GetIsNetworkAvailable() ? "有効" : "無効";
+            this.CurrentNetworkState.Text = GetIsConnectedToInternet() ? "有効" : "無効";
             this.AppendLog("ネットワークの状態を更新しました");
 
-            this.DisableNetwork.Enabled = NetworkInterface.GetIsNetworkAvailable();
-            this.EnableNetwork.Enabled = !NetworkInterface.GetIsNetworkAvailable();
+            this.DisableNetwork.Enabled = GetIsConnectedToInternet();
+            this.EnableNetwork.Enabled = !GetIsConnectedToInternet();
         }
 
         private void StateRefrashButton_Click(object sender, EventArgs e)
