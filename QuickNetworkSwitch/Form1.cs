@@ -54,35 +54,47 @@ namespace QuickNetworkSwitch
         /// Machine is connected to internet or not.
         /// </summary>
         /// <returns>Whether connected to internet.</returns>
-        public static bool GetIsConnectedToInternet()
+        public static async Task<bool> GetIsConnectedToInternet()
         {
-            const string host = "ht" + "tp://www.yahoo.co.jp";
-            HttpWebRequest request = null;
-            HttpWebResponse response = null;
-            try
+            //Method 'GetResponse' seems to need a few seconds, so running async.
+            //Having thought code's readability, substitute result into variable once.
+            bool result = await Task.Run(() =>
             {
-                request = (HttpWebRequest)WebRequest.Create(host);
-                request.Method = "HEAD";
-                response = (HttpWebResponse)request.GetResponse();
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-            finally
-            {
-                response?.Dispose();
-            }
+                //Host used in test has changed from Yahoo to Google
+                //Because Google returns a response more immediate than Yahoo
+                const string host = "ht" + "tp://www.google.co.jp";
+                HttpWebRequest request;
+                HttpWebResponse response = null;
+                try
+                {
+                    request = (HttpWebRequest)WebRequest.Create(host);
+                    request.Method = "HEAD";
+                    response = (HttpWebResponse)request.GetResponse();
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+                finally
+                {
+                    response?.Dispose();
+                }
+            });
+            return result;
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        private async void Form1_Load(object sender, EventArgs e)
         {
-            this.CurrentNetworkState.Text = GetIsConnectedToInternet() ? "有効" : "無効";
+            //Stops timer so that checking process never run multiple while running checking process already.
+            this.timer1.Enabled = false;
+            this.CurrentNetworkState.Text = await GetIsConnectedToInternet() ? "有効" : "無効";
             this.AppendLog("ネットワークの状態を更新しました");
 
-            this.DisableNetwork.Enabled = GetIsConnectedToInternet();
-            this.EnableNetwork.Enabled = !GetIsConnectedToInternet();
+            this.DisableNetwork.Enabled = await GetIsConnectedToInternet();
+            this.EnableNetwork.Enabled = !await GetIsConnectedToInternet();
+            this.timer1.Enabled = true;
+            this.Enabled = true;
         }
 
         private void StateRefrashButton_Click(object sender, EventArgs e)
@@ -129,6 +141,7 @@ namespace QuickNetworkSwitch
                 }
             }
             this.TopMost = this.timer1.Enabled = true;
+            this.Enabled = false;
         }
 
         private void timer1_Tick(object sender, EventArgs e)
