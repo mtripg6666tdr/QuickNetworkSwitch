@@ -27,8 +27,8 @@ namespace QuickNetworkSwitch
                     Properties.Settings.Default.Save();
                 }
             }
-            
-            this.timer1.Enabled = true;
+
+            this.Enabled = false;
         }
 
         /// <summary>
@@ -84,22 +84,33 @@ namespace QuickNetworkSwitch
             return result;
         }
 
-        private async void Form1_Load(object sender, EventArgs e)
+        private async void Form1_Shown(object sender, EventArgs e)
         {
             //Stops timer so that checking process never run multiple while running checking process already.
             this.timer1.Enabled = false;
-            this.CurrentNetworkState.Text = await GetIsConnectedToInternet() ? "有効" : "無効";
-            this.AppendLog("ネットワークの状態を更新しました");
+            bool result = await GetIsConnectedToInternet();
+            Action process = () =>
+            {
+                this.CurrentNetworkState.Text = result ? "有効" : "無効";
+                this.AppendLog("ネットワークの状態を更新しました");
 
-            this.DisableNetwork.Enabled = await GetIsConnectedToInternet();
-            this.EnableNetwork.Enabled = !await GetIsConnectedToInternet();
-            this.timer1.Enabled = true;
-            this.Enabled = true;
+                this.EnableNetwork.Enabled = !(this.DisableNetwork.Enabled = result);
+                this.timer1.Enabled = true;
+                this.Enabled = true;
+            };
+            if (this.InvokeRequired)
+            {
+                this.Invoke(process);
+            }
+            else
+            {
+                process();
+            }
         }
 
         private void StateRefrashButton_Click(object sender, EventArgs e)
         {
-            this.Form1_Load(null, null);
+            this.Form1_Shown(null, null);
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -146,7 +157,7 @@ namespace QuickNetworkSwitch
 
         private void timer1_Tick(object sender, EventArgs e)
         {
-            this.Form1_Load(null, null);
+            this.Form1_Shown(null, null);
         }
     }
 }
